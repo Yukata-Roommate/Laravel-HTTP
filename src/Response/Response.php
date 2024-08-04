@@ -26,7 +26,7 @@ class Response implements ResponseInterface
      *
      * @param \Illuminate\Http\Client\Response $response
      */
-    function __construct(LaravelResponse $response)
+    public function __construct(LaravelResponse $response)
     {
         $this->response = $response;
     }

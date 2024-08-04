@@ -56,7 +56,7 @@ class Request implements RequestInterface
      * @param string $url
      * @param array $params
      */
-    function __construct(string $method, string $url, array $params)
+    public function __construct(string $method, string $url, array $params)
     {
         $this->method = $method;
         $this->url    = $url;
