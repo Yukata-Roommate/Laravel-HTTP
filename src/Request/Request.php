@@ -2,22 +2,16 @@
 
 namespace YukataRm\Laravel\Http\Request;
 
-use YukataRm\Laravel\Http\Request\Interface\RequestInterface;
+use YukataRm\Laravel\Http\Interface\RequestInterface;
 
+use YukataRm\Laravel\Http\Interface\ResponseInterface;
 use YukataRm\Laravel\Http\Response\Response;
-use YukataRm\Laravel\Http\Enum\MethodEnum;
-use YukataRm\Laravel\Http\Enum\AuthEnum;
-use YukataRm\Laravel\Http\Enum\BodyFormatEnum;
-use YukataRm\Laravel\Http\Enum\RequestHeadersEnum;
-use YukataRm\Laravel\Http\Enum\RequestHeaders\AcceptEnum;
-use YukataRm\Laravel\Http\Enum\RequestHeaders\TokenTypeEnum;
-use YukataRm\Laravel\Http\Enum\RequestHeaders\ContentTypeEnum;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
 
 /**
- * HTTPリクエストを表現するクラス
+ * Request
  * 
  * @package YukataRm\Laravel\Http\Request
  */
@@ -28,39 +22,47 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * リクエスト先のURL
+     * url
      *
      * @var string
      */
     public readonly string $url;
 
     /**
-     * リクエストパラメータ
+     * request parameters
      *
      * @var array
      */
     public readonly array $params;
 
     /**
-     * リクエストのHTTPメソッド
+     * http method
      *
-     * @var \YukataRm\Laravel\Http\Enum\MethodEnum
+     * @var string
      */
-    public readonly MethodEnum $method;
+    public readonly string $method;
 
     /**
-     * コンストラクタ
+     * PendingRequest instance
+     * 
+     * @var \Illuminate\Http\Client\PendingRequest
+     */
+    public readonly PendingRequest $request;
+
+    /**
+     * constructor
      *
-     * @param \YukataRm\Laravel\Http\Enum\MethodEnum $method
+     * @param string $method
      * @param string $url
      * @param array $params
-     * @return void
      */
-    function __construct(MethodEnum $method, string $url, array $params)
+    function __construct(string $method, string $url, array $params)
     {
         $this->method = $method;
         $this->url    = $url;
         $this->params = $params;
+
+        $this->request = Http::acceptJson();
     }
 
     /*----------------------------------------*
@@ -68,39 +70,21 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * リクエストを送信する
+     * send request
      *
-     * @return \YukataRm\Laravel\Http\Response\Response
+     * @return \YukataRm\Laravel\Http\Interface\ResponseInterface
      */
-    public function send(): Response
+    public function send(): ResponseInterface
     {
-        $request = Http::asJson();
-
-        $request = $this->withAuth($request);
-
-        $request = $this->withBodyFormat($request);
-
-        $request = $this->withRequestHeaders($request);
-
-        $request = $this->withTimeout($request);
-
-        $request = $this->withConnectTimeout($request);
-
-        $request = $this->withRetry($request);
-
-        $request = $this->withMaxRedirects($request);
-
-        $request = $this->withWithoutRedirecting($request);
-
-        $request = $this->withWithoutVerifying($request);
-
         $response = match ($this->method) {
-            MethodEnum::GET    => $request->get($this->url, $this->params),
-            MethodEnum::POST   => $request->post($this->url, $this->params),
-            MethodEnum::PUT    => $request->put($this->url, $this->params),
-            MethodEnum::DELETE => $request->delete($this->url, $this->params),
-            MethodEnum::HEAD   => $request->head($this->url, $this->params),
-            MethodEnum::PATCH  => $request->patch($this->url, $this->params),
+            "get"    => $this->request->get($this->url, $this->params),
+            "post"   => $this->request->post($this->url, $this->params),
+            "put"    => $this->request->put($this->url, $this->params),
+            "delete" => $this->request->delete($this->url, $this->params),
+            "head"   => $this->request->head($this->url, $this->params),
+            "patch"  => $this->request->patch($this->url, $this->params),
+
+            default  => throw new \RuntimeException("invalid method: {$this->method}")
         };
 
         return new Response($response);
@@ -111,61 +95,7 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * 認証方式
-     *
-     * @var \YukataRm\Laravel\Http\Enum\AuthEnum|null
-     */
-    private AuthEnum|null $auth   = null;
-
-    /**
-     * 認証に使用するユーザー名
-     *
-     * @var string|null
-     */
-    private ?string $userName = null;
-
-    /**
-     * 認証に使用するパスワード
-     *
-     * @var string|null
-     */
-    private ?string $password = null;
-
-    /**
-     * 認証情報を付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withAuth(PendingRequest $request): PendingRequest
-    {
-        return match ($this->auth) {
-            AuthEnum::BASIC  => $request->withBasicAuth($this->userName, $this->password),
-            AuthEnum::DIGEST => $request->withDigestAuth($this->userName, $this->password),
-
-            default => $request,
-        };
-    }
-
-    /**
-     * 認証情報を指定する
-     *
-     * @param \YukataRm\Laravel\Http\Enum\AuthEnum $auth
-     * @param string $userName
-     * @param string $password
-     * @return static
-     */
-    public function auth(AuthEnum $auth, string $userName, string $password): static
-    {
-        $this->auth     = $auth;
-        $this->userName = $userName;
-        $this->password = $password;
-
-        return $this;
-    }
-
-    /**
-     * BASIC認証を行う
+     * set basic auth
      *
      * @param string $userName
      * @param string $password
@@ -173,11 +103,13 @@ class Request implements RequestInterface
      */
     public function basicAuth(string $userName, string $password): static
     {
-        return $this->auth(AuthEnum::BASIC, $userName, $password);
+        $this->request->withBasicAuth($userName, $password);
+
+        return $this;
     }
 
     /**
-     * DIGEST認証を行う
+     * set digest auth
      *
      * @param string $userName
      * @param string $password
@@ -185,7 +117,9 @@ class Request implements RequestInterface
      */
     public function digestAuth(string $userName, string $password): static
     {
-        return $this->auth(AuthEnum::DIGEST, $userName, $password);
+        $this->request->withDigestAuth($userName, $password);
+
+        return $this;
     }
 
     /*----------------------------------------*
@@ -193,74 +127,56 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * リクエストボディのフォーマット
+     * set body format
      *
-     * @var string|null
-     */
-    private ?string $bodyFormat = null;
-
-    /**
-     * リクエストボディのフォーマットを付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withBodyFormat(PendingRequest $request): PendingRequest
-    {
-        return is_null($this->bodyFormat) ? $request : $request->bodyFormat($this->bodyFormat);
-    }
-
-    /**
-     * リクエストボディのフォーマットを指定する
-     *
-     * @param \YukataRm\Laravel\Http\Enum\BodyFormatEnum $bodyFormat
+     * @param string $bodyFormat
      * @return static
      */
-    public function bodyFormat(BodyFormatEnum|string $bodyFormat): static
+    public function bodyFormat(string $bodyFormat): static
     {
-        $this->bodyFormat = $bodyFormat instanceof BodyFormatEnum ? $bodyFormat->value : $bodyFormat;
+        $this->request->bodyFormat($bodyFormat);
 
         return $this;
     }
 
     /**
-     * リクエストボディのフォーマットをBODYに指定する
+     * set body format as body
      *
      * @return static
      */
     public function asBody(): static
     {
-        return $this->bodyFormat(BodyFormatEnum::BODY);
+        return $this->bodyFormat("body");
     }
 
     /**
-     * リクエストボディのフォーマットをJSONに指定する
+     * set body format as json
      *
      * @return static
      */
     public function asJson(): static
     {
-        return $this->bodyFormat(BodyFormatEnum::JSON);
+        return $this->bodyFormat("json");
     }
 
     /**
-     * リクエストボディのフォーマットをFORMに指定する
+     * set body format as form params
      *
      * @return static
      */
     public function asForm(): static
     {
-        return $this->bodyFormat(BodyFormatEnum::FORM);
+        return $this->bodyFormat("form_params");
     }
 
     /**
-     * リクエストボディのフォーマットをMULTIPARTに指定する
+     * set body format as multipart
      *
      * @return static
      */
     public function asMultipart(): static
     {
-        return $this->bodyFormat(BodyFormatEnum::MULTIPART);
+        return $this->bodyFormat("multipart");
     }
 
     /*----------------------------------------*
@@ -268,159 +184,135 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * リクエストヘッダー
+     * set headers
      *
-     * @var array
-     */
-    private array $requestHeaders = [];
-
-    /**
-     * リクエストヘッダーを付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withRequestHeaders(PendingRequest $request): PendingRequest
-    {
-        return empty($this->requestHeaders) ? $request : $request->withHeaders($this->requestHeaders);
-    }
-
-    /**
-     * リクエストヘッダーの配列を指定する
-     *
-     * @param array $requestHeaders
+     * @param array $headers
      * @return static
      */
-    public function requestHeaders(array $requestHeaders): static
+    public function headers(array $headers): static
     {
-        $this->requestHeaders = array_merge_recursive($this->requestHeaders, $requestHeaders);
+        $this->request->withHeaders($headers);
 
         return $this;
     }
 
     /**
-     * リクエストヘッダーを指定する
+     * add header
      *
-     * @param \YukataRm\Laravel\Http\Enum\RequestHeadersEnum $key
+     * @param string $name
      * @param string $value
      * @return static
      */
-    public function requestHeader(RequestHeadersEnum|string $key, string $value): static
+    public function addHeader(string $name, string $value): static
     {
-        if ($key instanceof RequestHeadersEnum) $key = $key->value;
+        $this->request->withHeader($name, $value);
 
-        return $this->requestHeaders([$key => $value]);
+        return $this;
     }
 
     /**
-     * リクエストヘッダーのAcceptを指定する
+     * set accept header
      *
-     * @param \YukataRm\Laravel\Http\Enum\RequestHeaders\AcceptEnum $accept
+     * @param string $accept
      * @return static
      */
-    public function accept(AcceptEnum|string $accept): static
+    public function accept(string $accept): static
     {
-        if ($accept instanceof AcceptEnum) $accept = $accept->value;
-
-        return $this->requestHeader(RequestHeadersEnum::ACCEPT, $accept);
+        return $this->addHeader("Accept", $accept);
     }
 
     /**
-     * リクエストヘッダーのAcceptをJSONに指定する
+     * set accept json header
      *
      * @return static
      */
     public function acceptJson(): static
     {
-        return $this->accept(AcceptEnum::JSON);
+        return $this->accept("application/json");
     }
 
     /**
-     * リクエストヘッダーのAcceptをFORMに指定する
+     * set accept form header
      *
      * @return static
      */
     public function acceptForm(): static
     {
-        return $this->accept(AcceptEnum::FORM);
+        return $this->accept("application/x-www-form-urlencoded");
     }
 
     /**
-     * リクエストヘッダーのAcceptをHTMLに指定する
+     * set accept html header
      *
      * @return static
      */
     public function acceptHtml(): static
     {
-        return $this->accept(AcceptEnum::HTML);
+        return $this->accept("text/html");
     }
 
     /**
-     * リクエストヘッダーのAuthorizationを指定する
+     * set token header
      *
-     * @param \YukataRm\Laravel\Http\Enum\RequestHeaders\TokenTypeEnum $tokenType
+     * @param string $tokenType
      * @param string $token
      * @return static
      */
-    public function token(TokenTypeEnum|string $tokenType, string $token): static
+    public function token(string $tokenType, string $token): static
     {
-        if ($tokenType instanceof TokenTypeEnum) $tokenType = $tokenType->value;
-
-        return $this->requestHeader(RequestHeadersEnum::AUTHORIZATION, trim($tokenType . " " . $token));
+        return $this->addHeader("Authorization", trim("{$tokenType} {$token}"));
     }
 
     /**
-     * リクエストヘッダーのAuthorizationをBearerに指定する
+     * set bearer token header
      *
      * @param string $token
      * @return static
      */
     public function bearerToken(string $token): static
     {
-        return $this->token(TokenTypeEnum::BEARER, $token);
+        return $this->token("Bearer", $token);
     }
 
     /**
-     * リクエストヘッダーのContent-Typeを指定する
+     * set content type header
      *
-     * @param \YukataRm\Laravel\Http\Enum\ContentTypeEnum $contentType
+     * @param string $contentType
      * @return static
      */
-    public function contentType(ContentTypeEnum|string $contentType): static
+    public function contentType(string $contentType): static
     {
-        if ($contentType instanceof ContentTypeEnum) $contentType = $contentType->value;
-
-        return $this->requestHeader(RequestHeadersEnum::CONTENT_TYPE, $contentType);
+        return $this->addHeader("Content-Type", $contentType);
     }
 
     /**
-     * リクエストヘッダーのContent-TypeをJSONに指定する
+     * set content type json header
      *
      * @return static
      */
     public function contentTypeJson(): static
     {
-        return $this->contentType(ContentTypeEnum::JSON);
+        return $this->contentType("application/json");
     }
 
     /**
-     * リクエストヘッダーのContent-TypeをFORMに指定する
+     * set content type form header
      *
      * @return static
      */
     public function contentTypeForm(): static
     {
-        return $this->contentType(ContentTypeEnum::FORM);
+        return $this->contentType("application/x-www-form-urlencoded");
     }
 
     /**
-     * リクエストヘッダーのContent-TypeをHTMLに指定する
+     * set content type html header
      *
      * @return static
      */
     public function contentTypeHtml(): static
     {
-        return $this->contentType(ContentTypeEnum::HTML);
+        return $this->contentType("text/html");
     }
 
     /*----------------------------------------*
@@ -428,62 +320,28 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * リクエストのタイムアウト時間
-     *
-     * @var int|null
-     */
-    private ?int $timeout = null;
-
-    /**
-     * リクエストのコネクトタイムアウト時間
-     *
-     * @var int|null
-     */
-    private ?int $connectTimeout = null;
-
-    /**
-     * リクエストのタイムアウト時間を付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withTimeout(PendingRequest $request): PendingRequest
-    {
-        return is_null($this->timeout) ? $request : $request->timeout($this->timeout);
-    }
-
-    /**
-     * リクエストのタイムアウト時間を指定する
+     * set timeout
      *
      * @param int $seconds
      * @return static
      */
     public function timeout(int $seconds = 30): static
     {
-        $this->timeout = $seconds;
+        $this->request->timeout($seconds);
+
         return $this;
     }
 
     /**
-     * リクエストのコネクトタイムアウト時間を付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withConnectTimeout(PendingRequest $request): PendingRequest
-    {
-        return is_null($this->connectTimeout) ? $request : $request->connectTimeout($this->connectTimeout);
-    }
-
-    /**
-     * リクエストのコネクトタイムアウト時間を指定する
+     * set connect timeout
      *
      * @param int $seconds
      * @return static
      */
     public function connectTimeout(int $seconds = 10): static
     {
-        $this->connectTimeout = $seconds;
+        $this->request->connectTimeout($seconds);
+
         return $this;
     }
 
@@ -492,43 +350,7 @@ class Request implements RequestInterface
      *----------------------------------------*/
 
     /**
-     * リトライ回数
-     *
-     * @var int|null
-     */
-    private ?int $retryTimes = null;
-
-    /**
-     * リトライ間隔
-     *
-     * @var int|null
-     */
-    private ?int $retrySleeps = null;
-
-    /**
-     * リトライ条件
-     *
-     * @var \Closure|null
-     */
-    private ?\Closure $retryWhen = null;
-
-    /**
-     * リトライ情報を付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withRetry(PendingRequest $request): PendingRequest
-    {
-        if (is_null($this->retryTimes)) return $request;
-        if (is_null($this->retrySleeps)) return $request;
-        if (is_null($this->retryWhen)) return $request;
-
-        return $request->retry($this->retryTimes, $this->retrySleeps, $this->retryWhen);
-    }
-
-    /**
-     * リトライ情報を指定する
+     * set retry
      *
      * @param int $times
      * @param int $sleepMilliseconds
@@ -537,110 +359,56 @@ class Request implements RequestInterface
      */
     public function retry(int $times, int $sleepMilliseconds = 0, \Closure $when = null): static
     {
-        $this->retryTimes  = $times;
-        $this->retrySleeps = $sleepMilliseconds;
-        $this->retryWhen   = $when;
+        $this->request->retry($times, $sleepMilliseconds, $when);
 
         return $this;
     }
 
     /*----------------------------------------*
-     * Redirect
+     * Max Redirects
      *----------------------------------------*/
 
     /**
-     * リダイレクトの最大回数
-     *
-     * @var int|null
-     */
-    private ?int $maxRedirects = null;
-
-    /**
-     * リダイレクトを行うかどうか
-     *
-     * @var bool
-     */
-    private bool $withoutRedirecting = false;
-
-    /**
-     * リダイレクトの最大回数を付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withMaxRedirects(PendingRequest $request): PendingRequest
-    {
-        return is_null($this->maxRedirects) ? $request : $request->maxRedirects($this->maxRedirects);
-    }
-
-    /**
-     * リダイレクトの最大回数を指定する
+     * set max redirects
      *
      * @param int $maxRedirects
      * @return static
      */
     public function maxRedirects(int $maxRedirects): static
     {
-        $this->maxRedirects = $maxRedirects;
-
-        return $this;
-    }
-
-    /**
-     * リダイレクトを行うかどうかを付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withWithoutRedirecting(PendingRequest $request): PendingRequest
-    {
-        return $this->withoutRedirecting ? $request->withoutRedirecting() : $request;
-    }
-
-    /**
-     * リダイレクトを行うかどうかを指定する
-     *
-     * @param bool $withoutRedirecting
-     * @return static
-     */
-    public function withoutRedirecting($withoutRedirecting = true): static
-    {
-        $this->withoutRedirecting = $withoutRedirecting;
+        $this->request->maxRedirects($maxRedirects);
 
         return $this;
     }
 
     /*----------------------------------------*
-     * Verify
+     * Without Redirecting
      *----------------------------------------*/
 
     /**
-     * 証明書の検証を行うかどうか
+     * set without redirecting
      *
-     * @var bool
-     */
-    private bool $withoutVerifying = false;
-
-    /**
-     * 証明書の検証を行うかどうかを付与する
-     *
-     * @param \Illuminate\Http\Client\PendingRequest $request
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    private function withWithoutVerifying(PendingRequest $request): PendingRequest
-    {
-        return $this->withoutVerifying ? $request->withoutVerifying() : $request;
-    }
-
-    /**
-     * 証明書の検証を行うかどうかを指定する
-     *
-     * @param bool $withoutVerifying
      * @return static
      */
-    public function withoutVerifying($withoutVerifying = true): static
+    public function withoutRedirecting(): static
     {
-        $this->withoutVerifying = $withoutVerifying;
+        $this->request->withoutRedirecting();
+
+        return $this;
+    }
+
+    /*----------------------------------------*
+     * Without Verifying
+     *----------------------------------------*/
+
+    /**
+     * set without verifying
+     *
+     * @return static
+     */
+    public function withoutVerifying(): static
+    {
+        $this->request->withoutVerifying();
 
         return $this;
     }

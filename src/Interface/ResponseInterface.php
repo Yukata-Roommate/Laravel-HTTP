@@ -1,67 +1,67 @@
 <?php
 
-namespace YukataRm\Laravel\Http\Response\Interface;
+namespace YukataRm\Laravel\Http\Interface;
 
 use Illuminate\Support\Collection;
 
 /**
- * ResponseのInterface
+ * Response Interface
  * 
- * @package YukataRm\Laravel\Http\Response\Interface
+ * @package YukataRm\Laravel\Http\Interface
  */
 interface ResponseInterface
 {
     /**
-     * リクエストが成功したかどうかを取得する
+     * whether response is successful
      *
      * @return bool
      */
     public function isSuccess(): bool;
 
     /**
-     * レスポンスのステータスコードを取得する
+     * get status code
      *
      * @return int
      */
     public function statusCode(): int;
 
     /**
-     * レスポンスのヘッダーを取得する
+     * get headers
      *
      * @return array
      */
     public function headers(): array;
 
     /**
-     * レスポンスのボディを取得する
+     * get body
      *
      * @return mixed
      */
     public function body(): mixed;
 
     /**
-     * レスポンスのボディを文字列で取得する
+     * get body as string
      *
      * @return string
      */
     public function bodyAsString(): string;
 
     /**
-     * レスポンスのボディをオブジェクトで取得する
+     * get body as object
      *
      * @return mixed
      */
     public function bodyAsObject(): mixed;
 
     /**
-     * レスポンスのボディを配列で取得する
+     * get body as collection
      *
      * @return \Illuminate\Support\Collection
      */
     public function bodyAsCollection(): Collection;
 
     /**
-     * レスポンスの理由を取得する
+     * get reason
      *
      * @return string
      */

@@ -2,30 +2,29 @@
 
 namespace YukataRm\Laravel\Http\Response;
 
-use YukataRm\Laravel\Http\Response\Interface\ResponseInterface;
+use YukataRm\Laravel\Http\Interface\ResponseInterface;
 
 use Illuminate\Http\Client\Response as LaravelResponse;
 use Illuminate\Support\Collection;
 
 /**
- * HTTPレスポンスを表現するクラス
+ * Response
  * 
  * @package YukataRm\Laravel\Http\Response
  */
 class Response implements ResponseInterface
 {
     /**
-     * LaravelのResponseインスタンス
+     * Laravel Response instance
      *
      * @var \Illuminate\Http\Client\Response
      */
     public readonly LaravelResponse $response;
 
     /**
-     * コンストラクタ
+     * constructor
      *
      * @param \Illuminate\Http\Client\Response $response
-     * @return void
      */
     function __construct(LaravelResponse $response)
     {
@@ -33,7 +32,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * リクエストが成功したかどうかを取得する
+     * whether response is successful
      *
      * @return bool
      */
@@ -43,7 +42,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスのステータスコードを取得する
+     * get status code
      *
      * @return int
      */
@@ -53,7 +52,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスのヘッダーを取得する
+     * get headers
      *
      * @return array
      */
@@ -63,7 +62,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスのボディを取得する
+     * get body
      *
      * @return mixed
      */
@@ -73,7 +72,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスのボディを文字列で取得する
+     * get body as string
      *
      * @return string
      */
@@ -83,7 +82,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスのボディをオブジェクトで取得する
+     * get body as object
      *
      * @return mixed
      */
@@ -93,7 +92,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスのボディを配列で取得する
+     * get body as collection
      *
      * @return \Illuminate\Support\Collection
      */
@@ -103,7 +102,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * レスポンスの理由を取得する
+     * get reason
      *
      * @return string
      */
