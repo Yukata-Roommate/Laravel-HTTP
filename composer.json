@@ -3,7 +3,7 @@
     "description": "Easy to use HTTP Request and Response for Laravel",
     "type": "library",
     "license": "MIT",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "autoload": {
         "psr-4": {
             "YukataRm\\Laravel\\Http\\": "src"
@@ -27,7 +27,8 @@
     ],
     "require": {
         "php": ">=8.2.0",
-        "laravel/framework": "^11.0"
+        "laravel/framework": "^11.0",
+        "yukata-roommate/laravel-provider": "^1.0.0"
     },
     "minimum-stability": "dev"
 }

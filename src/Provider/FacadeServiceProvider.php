@@ -2,7 +2,7 @@
 
 namespace YukataRm\Laravel\Http\Provider;
 
-use Illuminate\Support\ServiceProvider;
+use YukataRm\Laravel\Provider\FacadeServiceProvider as BaseServiceProvider;
 
 use YukataRm\Laravel\Http\Facade\Manager;
 use YukataRm\Laravel\Http\Facade\Http;
@@ -12,17 +12,17 @@ use YukataRm\Laravel\Http\Facade\Http;
  * 
  * @package YukataRm\Laravel\Http\Provider
  */
-class FacadeServiceProvider extends ServiceProvider
+class FacadeServiceProvider extends BaseServiceProvider
 {
     /**
-     * register Facade
+     * get facades
      * 
-     * @return void
+     * @return array<string, string>
      */
-    public function register(): void
+    protected function facades(): array
     {
-        $this->app->singleton(Http::class, function () {
-            return new Manager();
-        });
+        return [
+            Http::class => Manager::class
+        ];
     }
 }
