@@ -1,0 +1,38 @@
+{
+    "name": "yukata-roommate/laravel-http",
+    "description": "Easy to use HTTP client for Laravel",
+    "version": "1.0.0",
+    "keywords": [
+        "yukata-roommate",
+        "php",
+        "laravel",
+        "package",
+        "http",
+        "laravel-http"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yukata Roommate"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "YukataRm\\Laravel\\Http\\": "src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "YukataRm\\Laravel\\Http\\ServiceProvider"
+            ],
+            "aliases": {
+                "Http": "YukataRm\\Laravel\\Http\\Facades\\Http"
+            }
+        }
+    },
+    "require": {
+        "php": ">=8.3.0",
+        "laravel/framework": "^11.0 || ^12.0"
+    }
+}
